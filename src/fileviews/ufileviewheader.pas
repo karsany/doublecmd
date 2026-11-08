@@ -34,8 +34,6 @@ type
 
     procedure HeaderShowHint(Sender: TObject; HintInfo: PHintInfo);
 
-    procedure EachViewUpdateHeader(AFileView: TFileView; {%H-}UserData: Pointer);
-
     function getFilesAtPath(
       const path: String;
       const types: TObjectTypes;
@@ -96,10 +94,11 @@ implementation
 uses
   LCLType, Graphics, uDCUtils, DCOSUtils, DCStrUtils, uKeyboard,
   fMain, uFileSourceUtil, uGlobs, uPixMapManager, uLng, uFileFunctions,
-  uFileSource, uArchiveFileSource, uFileViewWithPanels, uVfsModule;
+  uFileSource, uArchiveFileSource, uVfsModule;
 
 const
   SortingImageIndex: array[TSortDirection] of Integer = (-1, 0, 1);
+  PathLabelPadding = 2; // Space above and below the path text
 
 { TFileViewHeader }
 
@@ -141,20 +140,22 @@ end;
 procedure TFileViewHeader.PathLabelMouseWheelUp(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint;var Handled:Boolean);
 begin
-  if gZoomWithCtrlWheel and (ssCtrl in Shift) and (gFonts[dcfPathEdit].Size < gFonts[dcfPathEdit].MaxValue) then
+  // The path bar uses the main font, so zoom it like the file list does.
+  if gZoomWithCtrlWheel and (ssCtrl in Shift) then
   begin
-    gFonts[dcfPathEdit].Size:= gFonts[dcfPathEdit].Size + 1;
-    frmMain.ForEachView(@EachViewUpdateHeader, nil);
+    frmMain.Commands.MainFontZoomIn;
+    Handled := True;
   end;
 end;
 
 procedure TFileViewHeader.PathLabelMouseWheelDown(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint;var Handled:Boolean);
 begin
-  if gZoomWithCtrlWheel and (ssCtrl in Shift) and (gFonts[dcfPathEdit].Size > gFonts[dcfPathEdit].MinValue) then
+  // The path bar uses the main font, so zoom it like the file list does.
+  if gZoomWithCtrlWheel and (ssCtrl in Shift) then
   begin
-     gFonts[dcfPathEdit].Size:= gFonts[dcfPathEdit].Size - 1;
-     frmMain.ForEachView(@EachViewUpdateHeader, nil);
+    frmMain.Commands.MainFontZoomOut;
+    Handled := True;
   end;
 end;
 
@@ -216,11 +217,6 @@ end;
 procedure TFileViewHeader.AddressLabelMouseEnter(Sender: TObject);
 begin
   FAddressLabel.AllowHighlight:= FFileView.FileSource is TArchiveFileSource;
-end;
-
-procedure TFileViewHeader.EachViewUpdateHeader(AFileView: TFileView; UserData: Pointer);
-begin
-  TFileViewWithPanels(AFileView).Header.UpdateFont;
 end;
 
 function TFileViewHeader.getFilesAtPath(
@@ -286,10 +282,12 @@ begin
 
   FAddressLabel := TPathLabel.Create(Self, False);
   FAddressLabel.Parent := Self;
+  FAddressLabel.VerticalPadding := PathLabelPadding;
   FAddressLabel.BorderSpacing.Bottom := 1;
 
   FPathLabel := TPathLabel.Create(Self, True);
   FPathLabel.Parent := Self;
+  FPathLabel.VerticalPadding := PathLabelPadding;
 
   UpdateColor;
 
@@ -382,8 +380,10 @@ end;
 
 procedure TFileViewHeader.UpdateFont;
 begin
-  FontOptionsToFont(gFonts[dcfPathEdit], FAddressLabel.Font);
-  FontOptionsToFont(gFonts[dcfPathEdit], FPathLabel.Font);
+  // The current directory bar uses the same font as the file list.
+  FontOptionsToFont(gFonts[dcfMain], FAddressLabel.Font);
+  FontOptionsToFont(gFonts[dcfMain], FPathLabel.Font);
+  // The inline path editor keeps its own font.
   FontOptionsToFont(gFonts[dcfPathEdit], FPathEdit.Font);
 end;
 

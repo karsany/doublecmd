@@ -48,6 +48,11 @@ type
     FLeftSpacing: Integer;
 
     {en
+       How much space to leave above and below the text.
+    }
+    FVerticalPadding: Integer;
+
+    {en
        If a user clicks on a parent directory of the path,
        this stores the full path of that parent directory.
     }
@@ -61,9 +66,12 @@ type
 
     function GetColor(const AIndex: Integer): TColor;
     procedure SetColor(const AIndex: Integer; const AValue: TColor); overload;
+    procedure SetVerticalPadding(const AValue: Integer);
 
   protected
 
+    procedure CalculatePreferredSize(var PreferredWidth, PreferredHeight: Integer;
+      WithThemeSpace: Boolean); override;
     procedure TextChanged; override;
 
     procedure MouseEnter; override;
@@ -83,6 +91,7 @@ type
 
     property AllowHighlight: Boolean read FAllowHighlight write FAllowHighlight;
     property LeftSpacing: Integer read FLeftSpacing write FLeftSpacing;
+    property VerticalPadding: Integer read FVerticalPadding write SetVerticalPadding;
     property SelectedDir: String read FSelectedDir;
 
     property ActiveColor: TColor index 0 read GetColor write SetColor;
@@ -101,6 +110,7 @@ uses
 constructor TPathLabel.Create(AOwner: TComponent; bAllowHighlight: Boolean);
 begin
   FLeftSpacing := 3; // set before painting
+  FVerticalPadding := 0; // set before painting
 
   FColors[0] := clHighlight;
   FColors[1] := clHighlightText;
@@ -117,6 +127,14 @@ begin
   FHighlightText := '';
 
   SetActive(False);
+end;
+
+procedure TPathLabel.CalculatePreferredSize(var PreferredWidth,
+  PreferredHeight: Integer; WithThemeSpace: Boolean);
+begin
+  inherited CalculatePreferredSize(PreferredWidth, PreferredHeight, WithThemeSpace);
+  if PreferredHeight > 0 then
+    Inc(PreferredHeight, 2 * FVerticalPadding);
 end;
 
 procedure TPathLabel.Paint;
@@ -235,6 +253,16 @@ procedure TPathLabel.SetColor(const AIndex: Integer; const AValue: TColor);
 begin
   FColors[AIndex] := AValue;
   SetActive(FActive);
+end;
+
+procedure TPathLabel.SetVerticalPadding(const AValue: Integer);
+begin
+  if FVerticalPadding <> AValue then
+  begin
+    FVerticalPadding := AValue;
+    InvalidatePreferredSize;
+    AdjustSize;
+  end;
 end;
 
 procedure TPathLabel.TextChanged;
