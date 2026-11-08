@@ -887,6 +887,7 @@ type
     procedure UpdateDiskCount;
     procedure UpdateSelectedDrives;
     procedure UpdateGUIFunctionKeys;
+    procedure UpdateDriveBarFont;
     procedure UpdateMainTitleBar;
     procedure CreateDiskPanel(dskPanel : TKASToolBar);
     procedure UpdateSelectedDrive(ANoteBook: TFileViewNotebook);
@@ -991,6 +992,7 @@ const
   DCToolItemClipboardHeader = 'DOUBLECMD#TOOLBAR#XMLDATA';
   TCToolbarClipboardHeader  = 'TOTALCMD#BAR#DATA';
   DCToolbarClipboardHeader  = 'DOUBLECMD#BAR#DATA';
+  UIElementPadding = 2; // Extra space around icons and captions, in pixels
 
 {$IF DEFINED(LCLGTK2) or DEFINED(LCLQT) or DEFINED(LCLQT5) or DEFINED(LCLQT6)}
 var
@@ -5708,6 +5710,7 @@ begin
     MiddleToolbar.GlyphSize:= gMiddleToolBarIconSize;
     MiddleToolbar.ShowCaptions:= gMiddleToolBarShowCaptions;
     MiddleToolbar.SetButtonSize(gMiddleToolBarButtonSize, gMiddleToolBarButtonSize);
+    MiddleToolbar.ButtonSpacing := UIElementPadding;
     LoadToolbar(MiddleToolBar);
 
     pnlLeftResize(pnlLeft);
@@ -5732,6 +5735,8 @@ begin
     dskRight.GlyphSize:= gDiskIconsSize;
     dskLeft.ButtonHeight:= gDiskIconsSize + 6;
     dskRight.ButtonHeight:= gDiskIconsSize + 6;
+    dskLeft.ButtonSpacing:= UIElementPadding;
+    dskRight.ButtonSpacing:= UIElementPadding;
 
     pnlDiskLeftInner.Visible := gHorizontalFilePanels and gDriveBar1 and gDriveBar2;
     pnlDiskRightInner.Visible := gHorizontalFilePanels and gDriveBar1 and gDriveBar2;
@@ -5746,6 +5751,7 @@ begin
     end;
 
     // Create disk panels after assigning parent.
+    UpdateDriveBarFont;
     UpdateDiskCount; // Update list of showed drives
     (*/ Disk Panels *)
 
@@ -5760,6 +5766,7 @@ begin
     MainToolBar.GlyphSize:= gToolBarIconSize;
     MainToolBar.ShowCaptions:= gToolBarShowCaptions;
     MainToolBar.SetButtonSize(gToolBarButtonSize, gToolBarButtonSize);
+    MainToolBar.ButtonSpacing := UIElementPadding;
     LoadToolbar(MainToolBar);
 
     btnLeftDrive.Visible := gDrivesListButton;
@@ -6855,7 +6862,14 @@ begin
       H:= Max(H, AButton.Canvas.TextHeight(AButton.Caption));
     end;
   end;
-  pnlKeys.Height := H + 4;
+  pnlKeys.Height := H + 4 + 2 * UIElementPadding;
+end;
+
+procedure TfrmMain.UpdateDriveBarFont;
+begin
+  // Drive buttons use the same font as the file list.
+  FontOptionsToFont(gFonts[dcfMain], dskLeft.Font);
+  FontOptionsToFont(gFonts[dcfMain], dskRight.Font);
 end;
 
 procedure TfrmMain.ShowDrivesList(APanel: TFilePanelSelect);

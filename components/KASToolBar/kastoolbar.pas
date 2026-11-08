@@ -104,6 +104,7 @@ type
   private
     FButtonHeight: Integer;
     FButtonWidth: Integer;
+    FButtonSpacing: Integer;
     FFlat: Boolean;
     FGlyphSize: Integer;
     FRadioToolBar: Boolean;
@@ -140,6 +141,7 @@ type
     procedure InsertButton(InsertAt: Integer; ToolButton: TKASToolButton);
     procedure SetButtonHeight(const AValue: Integer);
     procedure SetButtonWidth(const AValue: Integer);
+    procedure SetButtonSpacing(const AValue: Integer);
     procedure SetChangePath(const {%H-}AValue: String);
     procedure SetEnvVar(const {%H-}AValue: String);
     procedure SetFlat(const AValue: Boolean);
@@ -213,6 +215,7 @@ type
     property GlyphSize: Integer read FGlyphSize write SetGlyphSize;
     property ButtonHeight: Integer read FButtonHeight write SetButtonHeight default 22;
     property ButtonWidth: Integer read FButtonWidth write SetButtonWidth default 23;
+    property ButtonSpacing: Integer read FButtonSpacing write SetButtonSpacing default 0;
     property ShowDividerAsButton: Boolean read FShowDividerAsButton write FShowDividerAsButton default False;
   end;
 
@@ -339,7 +342,7 @@ var
       repeat
         if (not Wrapable) or
            (NewBounds.Top = StartY) or
-           ((NewBounds.Bottom <= ARect.Bottom) and not ALineBreak) then
+           ((NewBounds.Bottom + FButtonSpacing <= ARect.Bottom) and not ALineBreak) then
         begin
           // control fits into the column
           x := NewBounds.Left;
@@ -350,8 +353,8 @@ var
         // try next column
         NewBounds.Top := StartY;
         NewBounds.Bottom := NewBounds.Top + CurControl.Height;
-        inc(NewBounds.Left, FRowWidth);
-        inc(NewBounds.Right, FRowWidth);
+        inc(NewBounds.Left, FRowWidth + FButtonSpacing);
+        inc(NewBounds.Right, FRowWidth + FButtonSpacing);
       until false;
     end
     else begin
@@ -359,7 +362,7 @@ var
       repeat
         if (not Wrapable) or
            (NewBounds.Left = StartX) or
-           ((NewBounds.Right <= ARect.Right) and not ALineBreak) then
+           ((NewBounds.Right + FButtonSpacing <= ARect.Right) and not ALineBreak) then
         begin
           // control fits into the row
           x := NewBounds.Left;
@@ -370,8 +373,8 @@ var
         // try next row
         NewBounds.Left := StartX;
         NewBounds.Right := NewBounds.Left + CurControl.Width;
-        inc(NewBounds.Top, FRowHeight);
-        inc(NewBounds.Bottom, FRowHeight);
+        inc(NewBounds.Top, FRowHeight + FButtonSpacing);
+        inc(NewBounds.Bottom, FRowHeight + FButtonSpacing);
       until false;
     end;
   end;
@@ -399,8 +402,8 @@ begin
     //DebugLn(['TToolBar.WrapButtons ',DbgSName(Self),' ARect=',dbgs(ARect)]);
     // important: top, left button must start in the AdjustClientRect top, left
     // otherwise Toolbar.AutoSize=true will create an endless loop
-    StartX := ARect.Left;
-    StartY := ARect.Top;
+    StartX := ARect.Left + FButtonSpacing;
+    StartY := ARect.Top + FButtonSpacing;
     x := StartX;
     y := StartY;
     for i := 0 to ButtonList.Count - 1 do
@@ -419,14 +422,14 @@ begin
       end;
 
       // adjust NewWidth, NewHeight
-      NewWidth := Max(NewWidth, x + w + AdjustClientFrame.Right);
-      NewHeight := Max(NewHeight, y + h + AdjustClientFrame.Bottom);
+      NewWidth := Max(NewWidth, x + w + AdjustClientFrame.Right + FButtonSpacing);
+      NewHeight := Max(NewHeight, y + h + AdjustClientFrame.Bottom + FButtonSpacing);
 
       // step to next position
       if IsVertical then
-        Inc(y, h)
+        Inc(y, h + FButtonSpacing)
       else
-        Inc(x, w);
+        Inc(x, w + FButtonSpacing);
     end;
   finally
     EndUpdate;
@@ -892,6 +895,13 @@ begin
   SetButtonSize(AValue, ButtonHeight);
 end;
 
+procedure TKASToolBar.SetButtonSpacing(const AValue: Integer);
+begin
+  if FButtonSpacing = AValue then Exit;
+  FButtonSpacing := AValue;
+  ResizeButtons;
+end;
+
 constructor TKASToolBar.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -900,6 +910,7 @@ begin
   FUpdateCount:= 0;
   FButtonWidth := 23;
   FButtonHeight := 22;
+  FButtonSpacing := 0;
   FKASToolBarFlags := [];
   FToolItemExecutors := TFPList.Create;
   FToolItems := TKASToolBarItems.Create;

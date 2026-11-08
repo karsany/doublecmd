@@ -548,7 +548,8 @@ object frmMain: TfrmMain
       Align = alClient
       AutoSize = True
       BevelOuter = bvNone
-      ChildSizing.TopBottomSpacing = 2
+      ChildSizing.LeftRightSpacing = 4
+      ChildSizing.TopBottomSpacing = 4
       ClientHeight = 27
       ClientWidth = 760
       TabOrder = 1

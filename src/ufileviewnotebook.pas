@@ -123,6 +123,7 @@ type
     FHintPos: TPoint;
     FLastMouseDownTime: TDateTime;
     FLastMouseDownPageIndex: Integer;
+    FTabHeightAdjusted: Boolean;
 
     function GetActivePage: TFileViewPage;
     function GetActiveView: TFileView;
@@ -130,6 +131,10 @@ type
     function GetPage(Index: Integer): TFileViewPage; reintroduce;
 
     procedure TabShowHint(Sender: TObject; HintInfo: PHintInfo);
+
+{$IF DEFINED(LCLWIN32)}
+    procedure UpdateTabHeight;
+{$ENDIF}
 
   protected
     procedure DoChange; override;
@@ -144,6 +149,7 @@ type
 {$ENDIF}
 
 {$IF DEFINED(LCLWIN32)}
+    procedure CreateWnd; override;
     procedure PaintWindow(DC: HDC); override;
 {$ENDIF}
 
@@ -169,6 +175,7 @@ type
     procedure ActivatePrevTab;
     procedure ActivateNextTab;
     procedure ActivateTabByIndex(Index: Integer);
+    procedure UpdateTabFont;
     function IndexOfPageAt(P: TPoint): Integer; override;
 
     procedure DragDrop(Source: TObject; X,Y: Integer); override;
@@ -209,6 +216,9 @@ uses
   {$ENDIF}
   ;
 
+const
+  TabPaddingVertical = 4; // Extra tab height, in pixels
+
 // -- TFileViewPage -----------------------------------------------------------
 
 procedure TFileViewPage.AssignPage(OtherPage: TFileViewPage);
@@ -231,6 +241,8 @@ begin
   FLockState := tlsNormal;
   FBackupViewClass := TColumnsFileView;
   inherited Create(TheOwner);
+  // The tab captions have their own font; don't pass it to the file view.
+  ParentFont := False;
 end;
 
 {$IF DEFINED(LCLWIN32)}
@@ -439,6 +451,9 @@ begin
   FHintPageIndex := -1;
   FNotebookSide := NotebookSide;
   FStartDrag := False;
+  FTabHeightAdjusted := False;
+
+  UpdateTabFont;
 
   OnShowHint := @TabShowHint;
 
@@ -492,6 +507,9 @@ end;
 function TFileViewNotebook.InsertPage(Index: Integer): TFileViewPage;
 begin
   Tabs.Insert(Index, '');
+{$IFDEF LCLWIN32}
+  UpdateTabHeight;
+{$ENDIF}
   Result := GetPage(Index);
   ShowTabs:= ((PageCount > 1) or (tb_always_visible in gDirTabOptions)) and gDirectoryTabs;
 end;
@@ -581,6 +599,28 @@ end;
 {$ENDIF}
 
 {$IF DEFINED(LCLWIN32)}
+procedure TFileViewNotebook.UpdateTabHeight;
+var
+  ARect: TRect;
+begin
+  if FTabHeightAdjusted or (not HandleAllocated) or (PageCount = 0) then Exit;
+  if SendMessage(Handle, TCM_GETITEMRECT, 0, LPARAM(@ARect)) <> 0 then
+  begin
+    FTabHeightAdjusted := True;
+    // Add a little padding above and below the tab captions.
+    // TCM_SETPADDING does not affect the height with visual styles,
+    // so set the tab height explicitly. The LCL property is used because
+    // it is reapplied on handle creation and scaled with the DPI.
+    TabHeight := ARect.Bottom - ARect.Top + TabPaddingVertical;
+  end;
+end;
+
+procedure TFileViewNotebook.CreateWnd;
+begin
+  inherited CreateWnd;
+  UpdateTabHeight;
+end;
+
 procedure TFileViewNotebook.PaintWindow(DC: HDC);
 var
   ARect: TRect;
@@ -632,6 +672,31 @@ begin
     Page[PageCount - 1].MakeActive
   else if PageCount >= Index + 1 then
     Page[Index].MakeActive;
+end;
+
+procedure TFileViewNotebook.UpdateTabFont;
+var
+  NeedUpdate: Boolean;
+begin
+  NeedUpdate := ParentFont or
+                (Font.Name <> gFonts[dcfMain].Name) or
+                (Font.Size <> gFonts[dcfMain].Size) or
+                (Font.Style <> gFonts[dcfMain].Style) or
+                (Font.Quality <> gFonts[dcfMain].Quality);
+  if not NeedUpdate then Exit;
+
+  ParentFont := False;
+  FontOptionsToFont(gFonts[dcfMain], Font);
+
+{$IFDEF LCLWIN32}
+  // Recalculate the padded tab height for the new font.
+  FTabHeightAdjusted := False;
+  if HandleAllocated and (PageCount > 0) then
+  begin
+    TabHeight := 0;
+    UpdateTabHeight;
+  end;
+{$ENDIF}
 end;
 
 function TFileViewNotebook.IndexOfPageAt(P: TPoint): Integer;

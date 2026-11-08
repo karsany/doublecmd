@@ -70,7 +70,8 @@ type
 implementation
 
 uses
-  DCStrUtils, uFile, uGlobs, uLng, uFileProperty, uFileViewWorker, uDCUtils;
+  DCStrUtils, uFile, uGlobs, uLng, uFileProperty, uFileViewWorker, uDCUtils,
+  uFileViewNotebook;
 
 { TFileViewWithPanels }
 
@@ -160,6 +161,8 @@ begin
   pnlHeader.UpdateAddressLabel;
   pnlHeader.UpdatePathLabel;
   UpdateStatusBarFont;
+  if NotebookPage is TFileViewPage then
+    TFileViewPage(NotebookPage).Notebook.UpdateTabFont;
 end;
 
 function TFileViewWithPanels.RemoveCurrentFileSource: Boolean;

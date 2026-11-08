@@ -3555,6 +3555,7 @@ begin
   gFonts[dcfMain].Size:= gFonts[dcfMain].Size + inc;
   frmMain.FrameLeft.UpdateView;
   frmMain.FrameRight.UpdateView;
+  frmMain.UpdateDriveBarFont;
 end;
 
 function TMainCommands.MainFontZoomIn: Boolean;
